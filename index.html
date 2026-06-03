@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="theme-color" content="#00c853"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="T Attendii"/>
+  <title>T Attendii</title>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="icon" type="image/png" href="favicon.png"/>
+  <link rel="apple-touch-icon" href="icons/icon-192.png"/>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+<div id="app">
+
+  <!-- ════════════════════════════════
+       DASHBOARD VIEW
+  ═══════════════════════════════════ -->
+  <div id="view-dashboard" class="view active">
+    <div class="dash-header">
+      <div class="dash-top">
+        <div class="app-logo">
+          <div class="logo-icon">📋</div>
+          <div>
+            <div class="app-name">T <span>Attendii</span></div>
+            <div class="offline-badge"><span class="offline-dot"></span> Offline Mode Active</div>
+          </div>
+        </div>
+        <button id="install-btn" class="hidden">⬇ Install App</button>
+      </div>
+      <div class="dash-stats">
+        <div class="stat-chip">
+          <div class="stat-num" id="stat-students">0</div>
+          <div class="stat-label">Students</div>
+        </div>
+        <div class="stat-chip">
+          <div class="stat-num" id="stat-sessions">0</div>
+          <div class="stat-label">Sessions</div>
+        </div>
+        <div class="stat-chip">
+          <div class="stat-num" id="stat-records">0</div>
+          <div class="stat-label">Records</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dash-actions">
+      <button class="action-btn action-btn-primary" onclick="showView('view-start-session')">
+        <span class="btn-icon">🚀</span>
+        <div class="btn-content">
+          <div class="btn-title">Start Attendance</div>
+          <div class="btn-sub">Begin a new session & scan QR codes</div>
+        </div>
+      </button>
+      <button class="action-btn action-btn-secondary" onclick="showView('view-students')">
+        <span class="btn-icon">👨‍🎓</span>
+        <div class="btn-content">
+          <div class="btn-title">Students</div>
+          <div class="btn-sub">Add, view & manage students</div>
+        </div>
+      </button>
+      <button class="action-btn action-btn-secondary" onclick="showView('view-qr-cards')">
+        <span class="btn-icon">🆔</span>
+        <div class="btn-content">
+          <div class="btn-title">QR Cards</div>
+          <div class="btn-sub">Generate & print student ID cards</div>
+        </div>
+      </button>
+    </div>
+
+    <div class="dash-footer">
+      <div class="footer-actions">
+        <button class="footer-btn" onclick="showView('view-export')">
+          <span class="footer-btn-icon">📤</span>
+          Export
+        </button>
+        <button class="footer-btn" onclick="showView('view-backup')">
+          <span class="footer-btn-icon">💾</span>
+          Backup
+        </button>
+        <button class="footer-btn" onclick="showView('view-history')">
+          <span class="footer-btn-icon">📋</span>
+          History
+        </button>
+      </div>
+      <div class="brand-credit">T Attendii — by TAHA AMIN</div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════
+       STUDENTS VIEW
+  ═══════════════════════════════════ -->
+  <div id="view-students" class="view">
+    <div class="header">
+      <button class="header-back" onclick="showView('view-dashboard')">← Back</button>
+      <div class="header-title">Students</div>
+      <button class="btn btn-primary btn-sm" onclick="openAddStudent()">+ Add</button>
+    </div>
+    <div class="content">
+      <div class="search-bar">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" id="student-search" placeholder="Search by name, ID, department..." oninput="filterStudents()"/>
+      </div>
+      <div id="students-list"></div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════
+       ADD/EDIT STUDENT MODAL
+  ═══════════════════════════════════ -->
+  <div id="modal-student" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-handle"></div>
+      <div class="modal-title" id="student-modal-title">Add Student</div>
+      <input type="hidden" id="edit-student-id"/>
+
+      <div class="form-group">
+        <label class="form-label">Student Photo</label>
+        <div class="photo-upload" id="photo-upload-area" onclick="document.getElementById('photo-file').click()">
+          <img id="photo-preview" style="display:none"/>
+          <div id="photo-placeholder">📷 Tap to add photo (optional)</div>
+        </div>
+        <input type="file" id="photo-file" accept="image/*" capture="environment" style="display:none" onchange="handlePhotoUpload(event)"/>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Student Name *</label>
+          <input class="form-input" id="f-name" placeholder="Full name"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Student ID *</label>
+          <input class="form-input" id="f-sid" placeholder="e.g. STU-001"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Father Name</label>
+        <input class="form-input" id="f-father" placeholder="Father's name"/>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" id="f-email" type="email" placeholder="email@domain.com"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone</label>
+          <input class="form-input" id="f-phone" placeholder="+92 300 0000000"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Department</label>
+        <input class="form-input" id="f-dept" placeholder="e.g. Computer Science"/>
+      </div>
+      <div class="btn-group" style="margin-top:8px">
+        <button class="btn btn-secondary" onclick="closeModal('modal-student')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveStudent()">💾 Save Student</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════
+       QR CARDS VIEW
+  ═══════════════════════════════════ -->
+  <div id="view-qr-cards" class="view">
+    <div class="header">
+      <button class="header-back" onclick="showView('view-dashboard')">← Back</button>
+      <div class="header-title">QR Cards</div>
+      <button class="btn btn-primary btn-sm" onclick="exportAllQR()">All ZIP</button>
+    </div>
+    <div class="content">
+      <div class="search-bar">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" id="qr-search" placeholder="Search student..." oninput="filterQRCards()"/>
+      </div>
+      <div id="qr-cards-list"></div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════
+       START SESSION VIEW
+  ═══════════════════════════════════ -->
+  <div id="view-start-session" class="view">
+    <div class="header">
+      <button class="header-back" onclick="showView('view-dashboard')">← Back</button>
+      <div class="header-title">New Session</div>
+    </div>
+    <div class="content">
+      <p class="text-muted" style="margin-bottom:16px">Fill in session details before scanning</p>
+      <div class="form-group">
+        <label class="form-label">Subject *</label>
+        <input class="form-input" id="sess-subject" placeholder="e.g. Data Structures"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Topic</label>
+        <input class="form-input" id="sess-topic" placeholder="e.g. Binary Trees"/>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Venue</label>
+          <input class="form-input" id="sess-venue" placeholder="e.g. Room 101"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          <input class="form-input" id="sess-date" type="date"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Teacher Name</label>
+        <input class="form-input" id="sess-teacher" placeholder="Teacher's name"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Remarks</label>
+        <input class="form-input" id="sess-remarks" placeholder="Optional remarks"/>
+      </div>
+      <button class="btn btn-primary" style="margin-top:8px" onclick="startSession()">🚀 Start Attendance</button>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════
+       SCANNER VIEW
+  ═══════════════════════════════════ -->
+  <div id="view-scanner" class="view">
+    <div class="header">
+      <button class="header-back" onclick="stopScanner()">✕ End</button>
+      <div class="header-title" id="scanner-subject-title">Scanning...</div>
+    </div>
+    <div class="content" style="padding-top:10px">
+      <div class="session-stats">
+        <div class="sess-stat">
+          <div class="sess-stat-num" id="ss-total">0</div>
+          <div class="sess-stat-label">Total</div>
+        </div>
+        <div class="sess-stat">
+          <div class="sess-stat-num green" id="ss-present">0</div>
+          <div class="sess-stat-label">Present</div>
+        </div>
+        <div class="sess-stat">
+          <div class="sess-stat-num red" id="ss-absent">0</div>
+          <div class="sess-stat-label">Absent</div>
+        </div>
+        <div class="sess-stat">
+          <div class="sess-stat-num blue" id="ss-pct">0%</div>
+          <div class="sess-stat-label">Percent</div>
+        </div>
+      </div>
+
+      <div id="scanner-container">
+        <div id="qr-reader"></div>
+        <div class="scanner-overlay">
+          <div class="scan-frame">
+            <div class="scan-corner tl"></div>
+            <div class="scan-corner tr"></div>
+            <div class="scan-corner bl"></div>
+            <div class="scan-corner br"></div>
+            <div class="scan-line"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="scanner-controls">
+        <button class="torch-btn" id="torch-btn" onclick="toggleTorch()">🔦 Torch</button>
+        <button class="torch-btn" style="flex:1" onclick="showView('view-session-list')">📋 View List</button>
+      </div>
+
+      <div id="recent-scans" style="margin-top:12px"></div>
+    </div>
+
+    <button id="end-session-fab" class="show" onclick="endSession()">⏹ End Session</button>
+  </div>
+
+  <!-- ════════════════════════════════
+       SESSION LIST VIEW (during scan)
+  ═══════════════════════════════════ -->
+  <div id="view-session-list" class="view">
+    <div class="header">
+      <button class="header-back" onclick="showView('view-scanner')">← Scanner</button>
+      <div class="header-title">Attendance List</div>
+    </div>
+    <div class="content">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchAttTab('present',this)">✅ Present (<span id="tab-present-count">0</span>)</button>
+        <button class="tab-btn" onclick="switchAttTab('absent',this)">❌ Absent (<span id="tab-absent-count">0</span>)</button>
+      </div>
+      <div id="att-present-list"></div>
+      <div id="att-absent-list" style="display:none"></div>
+    </div>
+    <button id="end-session-fab" class="show" style="position:fixed" onclick="endSession()">⏹ End Session</button>
+  </div>
+
+  <!-- ════════════════════════════════
+       HISTORY VIEW
+  ═══════════════════════════════════ -->
+  <div id="view-history" class="view">
+    <div class="header">
+      <button class="header-back" onclick="showView('view-dashboard')">← Back</button>
+      <div class="header-title">History</div>
+    </div>
+    <div class="content">
+      <div class="search-bar">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" id="history-search" placeholder="Search sessions..." oninput="filterHistory()"/>
+      </div>
+      <div id="history-list"></div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════
+       SESSION DETAIL VIEW
+  ═══════════════════════════════════ -->
+  <div id="view-session-detail" class="view">
+    <div class="header">
+      <button class="header-back" onclick="showView('view-history')">← Back</button>
+      <div class="header-title">Session Report</div>
+      <button class="btn btn-primary btn-sm" onclick="exportSessionReport()">📤 Export</button>
+    </div>
+    <div class="content" id="session-detail-content"></div>
+  </div>
+
+  <!-- ════════════════════════════════
+       EXPORT VIEW
+  ═══════════════════════════════════ -->
+  <div id="view-export" class="view">
+    <div class="header">
+      <button class="header-back" onclick="showView('view-dashboard')">← Back</button>
+      <div class="header-title">Export Data</div>
+    </div>
+    <div class="content">
+      <div class="section-title">Students</div>
+      <button class="btn btn-secondary" style="margin-bottom:8px" onclick="exportStudentsCSV()">📄 Export Students CSV</button>
+
+      <hr class="divider"/>
+      <div class="section-title">Attendance</div>
+      <div class="form-group">
+        <label class="form-label">Filter by Subject</label>
+        <select class="form-input" id="export-subject-filter">
+          <option value="">All Subjects</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">From Date</label>
+          <input type="date" class="form-input" id="export-date-from"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">To Date</label>
+          <input type="date" class="form-input" id="export-date-to"/>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="exportAttendanceCSV()">📊 Export Attendance CSV</button>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════
+       BACKUP VIEW
+  ═══════════════════════════════════ -->
+  <div id="view-backup" class="view">
+    <div class="header">
+      <button class="header-back" onclick="showView('view-dashboard')">← Back</button>
+      <div class="header-title">Backup & Restore</div>
+    </div>
+    <div class="content">
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-title">💾 Backup</div>
+        <p class="text-muted" style="margin:8px 0 14px">Download complete system backup as JSON. Keep regular backups to prevent data loss.</p>
+        <button class="btn btn-primary" onclick="exportBackup()">⬇ Download Backup</button>
+      </div>
+      <div class="card">
+        <div class="card-title">📂 Restore</div>
+        <p class="text-muted" style="margin:8px 0 14px">⚠️ Restoring will REPLACE all current data. Make sure you have a backup first.</p>
+        <button class="btn btn-secondary" onclick="document.getElementById('restore-file').click()">📁 Select Backup File</button>
+        <input type="file" id="restore-file" accept=".json" style="display:none" onchange="importBackup(event)"/>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end #app -->
+
+<!-- ════════════════════════════════
+     SCAN SUCCESS POPUP
+═══════════════════════════════════ -->
+<div class="scan-popup" id="scan-popup">
+  <div class="popup-photo" id="popup-photo">😊</div>
+  <div class="popup-info">
+    <div class="popup-name" id="popup-name">-</div>
+    <div class="popup-id" id="popup-id">-</div>
+    <div class="popup-status">✅ Marked Present</div>
+  </div>
+  <div class="popup-check">✅</div>
+</div>
+
+<!-- ════════════════════════════════
+     TOAST CONTAINER
+═══════════════════════════════════ -->
+<div id="toast-container"></div>
+
+<!-- ════════════════════════════════
+     AUDIO BEEP
+═══════════════════════════════════ -->
+<audio id="beep-sound" preload="auto">
+  <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbv4VEHiAjcK/Oy6JZLS5jrdbtxnVBFRMsidXvxo9IIiE0pPD70oMuGBo8tuT3v3MhFhQ3wuv1smwpIyg7tt/0rnAqIyY6uOL0rW8oIyU6u+P1rm8oIiY8vef4s3AoJCY7vef4s3EoJSY7vef4tHEoJCc7vef4tXIoJCc8vef4tXIoJCc8vef4tXIoJSc8vuf4tXIpJCc8v+f4tXEpJCc8vuf4tXEpJSc8vuf4tXEpJSY7vuf4tXEpJSY6vuf4tXApJSY6vuf4tXApJSY7vuf4tnApJSY7v+f4tnApJSc7v+f4tnApJSc7v+f4tnEpJSc7v+f4tnEpJSc7v+f4tnEpJSc7v+f4tnEpJSc7v+f4tnEpJSc7v+f4tnEpJSc7v+f4tnEo" type="audio/wav"/>
+</audio>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
