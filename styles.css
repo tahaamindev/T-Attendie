@@ -961,7 +961,7 @@ select.form-input option {
   border-radius: 12px;
   padding: 16px;
   width: 220px;
-  height: 300px;
+ 
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
 }
 
@@ -1007,6 +1007,37 @@ select.form-input option {
 .qr-code-img {
   margin: 0 auto;
   display: block;
+}
+
+/* QR image */
+.qr-image,
+img[src^="data:image"] {
+  width: 120px;
+  height: 120px;
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  border: 3px solid #fff;
+  background: #fff;
+  padding: 8px;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.15);
+}
+
+/* QR card container */
+.card img {
+  object-fit: contain;
+  background: #fff;
+}
+
+/* PDF/Print quality */
+@media print {
+  .qr-image,
+  .card img {
+    width: 200px !important;
+    height: 200px !important;
+    image-rendering: pixelated;
+  }
 }
 
 /* ─── HISTORY ─── */
