@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tattendii-v1.0.0';
+const CACHE_NAME = 'tattendii-v1.0.1';
 const ASSETS = [
   './',
   './index.html',
@@ -10,7 +10,8 @@ const ASSETS = [
   'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js',
   'https://unpkg.com/jszip@3.10.1/dist/jszip.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-  'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap'
+  'https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js',
+  'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap'
 ];
 
 self.addEventListener('install', e => {

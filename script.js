@@ -314,14 +314,21 @@ async function renderQRCards(filter = '') {
     return;
   }
 
+  if (typeof QRCode === 'undefined') {
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-text">QR library not loaded. Please check your internet connection and reload the page.</div></div>`;
+    toast('QR Code library failed to load. Check connection and reload.', 'error');
+    return;
+  }
+
   container.innerHTML = '';
   for (const s of list) {
     const card = document.createElement('div');
     card.className = 'card';
     card.style.marginBottom = '12px';
 
-    const qrDataUrl = await generateQRDataURL(s.sid, 120);
-    card.innerHTML = `
+    try {
+      const qrDataUrl = await generateQRDataURL(s.sid, 120);
+      card.innerHTML = `
       <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px">
         <div class="student-avatar">${s.photo ? `<img src="${s.photo}"/>` : '👤'}</div>
         <div style="flex:1">
@@ -336,6 +343,18 @@ async function renderQRCards(filter = '') {
         <button class="btn btn-secondary btn-sm" onclick="printQRCard('${s.sid}')">🖨 Print</button>
         <button class="btn btn-primary btn-sm" onclick="downloadQRCardPDF('${s.sid}')">📄 PDF</button>
       </div>`;
+    } catch (err) {
+      card.innerHTML = `
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px">
+        <div class="student-avatar">${s.photo ? `<img src="${s.photo}"/>` : '👤'}</div>
+        <div style="flex:1">
+          <div style="font-weight:700">${s.name}</div>
+          <div class="monospace" style="font-size:0.75rem;color:var(--text3)">${s.sid}</div>
+          <div style="font-size:0.72rem;color:var(--text2)">${s.dept||''}</div>
+        </div>
+      </div>
+      <div style="color:var(--danger);font-size:0.8rem">⚠️ QR generation failed: ${err.message}</div>`;
+    }
     container.appendChild(card);
   }
 }
@@ -345,53 +364,24 @@ function filterQRCards() {
 }
 
 function generateQRDataURL(text, size = 200) {
-  return new Promise(resolve => {
-    const canvas = document.createElement('canvas');
-    canvas.width = size; canvas.height = size;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, size, size);
-
-    // Simple QR representation using a hash-based pattern
-    const hash = [...text].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 0);
-    const modules = 21;
-    const cellSize = Math.floor(size / (modules + 4));
-    const offset = Math.floor((size - modules * cellSize) / 2);
-
-    ctx.fillStyle = '#000';
-
-    // Finder patterns
-    const drawFinder = (x, y) => {
-      ctx.fillRect(x, y, 7*cellSize, 7*cellSize);
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(x+cellSize, y+cellSize, 5*cellSize, 5*cellSize);
-      ctx.fillStyle = '#000';
-      ctx.fillRect(x+2*cellSize, y+2*cellSize, 3*cellSize, 3*cellSize);
-    };
-
-    drawFinder(offset, offset);
-    drawFinder(offset + (modules-7)*cellSize, offset);
-    drawFinder(offset, offset + (modules-7)*cellSize);
-
-    // Data modules based on text hash + text chars
-    const seed = [...text].map(c => c.charCodeAt(0));
-    for (let r = 0; r < modules; r++) {
-      for (let c = 0; c < modules; c++) {
-        if ((r < 8 && c < 8) || (r < 8 && c >= modules-8) || (r >= modules-8 && c < 8)) continue;
-        const idx = r * modules + c;
-        const bit = (seed[idx % seed.length] >> (idx % 8)) & 1;
-        const extra = (hash >> (idx % 32)) & 1;
-        if (bit ^ extra) {
-          ctx.fillStyle = '#000';
-          ctx.fillRect(offset + c*cellSize, offset + r*cellSize, cellSize, cellSize);
+  return new Promise((resolve, reject) => {
+    QRCode.toDataURL(
+      text,
+      {
+        width: size,
+        margin: 2,
+        color: {
+          dark: "#000000",
+          light: "#FFFFFF"
         }
+      },
+      (err, url) => {
+        if (err) reject(err);
+        else resolve(url);
       }
-    }
-
-    resolve(canvas.toDataURL());
+    );
   });
 }
-
 async function buildQRCardCanvas(student) {
   const canvas = document.createElement('canvas');
   const W = 320, H = 430;
@@ -400,6 +390,7 @@ async function buildQRCardCanvas(student) {
 
   // Background
   ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
   ctx.roundRect ? ctx.roundRect(0, 0, W, H, 14) : ctx.rect(0, 0, W, H);
   ctx.fill();
 
@@ -410,9 +401,9 @@ async function buildQRCardCanvas(student) {
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 14px Outfit, sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('UNIVERSITY OF EXCELLENCE', W/2, 24);
+  ctx.fillText('Health Service Academy', W/2, 24);
   ctx.font = '11px Outfit, sans-serif';
-  ctx.fillText('Student Identity Card', W/2, 42);
+  ctx.fillText('Student Attendance Card', W/2, 42);
 
   // Photo
   const photoSize = 90;
@@ -469,10 +460,11 @@ async function buildQRCardCanvas(student) {
   await new Promise(res => {
     const qrImg = new Image();
     qrImg.onload = () => {
-      const qrX = (W - 130) / 2;
-      ctx.drawImage(qrImg, qrX, 290, 130, 130);
+      const qrX = (W - 150) / 2;
+      ctx.drawImage(qrImg, qrX, 230, 150, 150);
       res();
     };
+    qrImg.onerror = res;
     qrImg.src = qrDataUrl;
   });
 
@@ -577,22 +569,29 @@ async function initScanner() {
   const students = await dbGetAll('students');
   document.getElementById('ss-total').textContent = students.length;
 
+  // Stop any existing scanner instance before creating a new one
+  if (html5QrScanner) {
+    try { await html5QrScanner.stop(); } catch(e) {}
+    try { html5QrScanner.clear(); } catch(e) {}
+    html5QrScanner = null;
+  }
+
   const config = {
     fps: 15,
     qrbox: { width: 200, height: 200 },
     aspectRatio: 1.2,
-    disableFlip: false,
-    videoConstraints: {
-      facingMode: { ideal: 'environment' },
-      focusMode: 'continuous',
-      advanced: [{ focusMode: 'continuous' }]
-    }
+    disableFlip: false
   };
 
   html5QrScanner = new Html5Qrcode('qr-reader', { verbose: false });
 
   try {
-    await html5QrScanner.start({ facingMode: { ideal: 'environment' } }, config, onScanSuccess, onScanFailure);
+    await html5QrScanner.start(
+      { facingMode: { ideal: 'environment' } },
+      config,
+      onScanSuccess,
+      onScanFailure
+    );
     // Capture stream for torch
     const videoEl = document.querySelector('#qr-reader video');
     if (videoEl && videoEl.srcObject) {
@@ -600,9 +599,14 @@ async function initScanner() {
       if (tracks.length) currentTrack = tracks[0];
     }
   } catch (err) {
-    console.warn('Rear camera failed, trying any camera:', err);
+    console.warn('Rear camera failed, trying front camera:', err);
     try {
-      await html5QrScanner.start({ facingMode: 'user' }, config, onScanSuccess, onScanFailure);
+      await html5QrScanner.start(
+        { facingMode: 'user' },
+        config,
+        onScanSuccess,
+        onScanFailure
+      );
     } catch (err2) {
       toast('Camera access failed: ' + err2.message, 'error');
     }
@@ -774,6 +778,7 @@ async function toggleTorch() {
 async function stopScanner() {
   if (html5QrScanner) {
     try { await html5QrScanner.stop(); } catch(e) {}
+    try { html5QrScanner.clear(); } catch(e) {}
     html5QrScanner = null;
   }
   currentSession = null;
@@ -817,6 +822,7 @@ async function endSession() {
 
   if (html5QrScanner) {
     try { await html5QrScanner.stop(); } catch(e) {}
+    try { html5QrScanner.clear(); } catch(e) {}
     html5QrScanner = null;
   }
 
